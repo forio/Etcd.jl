@@ -1,32 +1,32 @@
 # These are the official errors as specified in etcd
 # https://github.com/coreos/etcd
 
-const etcd_error_codes = Int[(const ECODE_KEY_NOT_FOUND    = 100,
-                              const ECODE_TEST_FAILED      = 101,
-                              const ECODE_NOT_FILE         = 102,
-                              const ECODE_NO_MORE_PEER     = 103,
-                              const ECODE_NOT_DIR          = 104,
-                              const ECODE_NODE_EXIST       = 105,
-                              const ECODE_KEY_IS_PRESERVED = 106,
-                              const ECODE_ROOT_R_ONLY      = 107,
-                              const ECODE_DIR_NOT_EMPTY    = 108,
+const etcd_error_codes = Int[(const ECODE_KEY_NOT_FOUND    = 100),
+                             (const ECODE_TEST_FAILED      = 101),
+                             (const ECODE_NOT_FILE         = 102),
+                             (const ECODE_NO_MORE_PEER     = 103),
+                             (const ECODE_NOT_DIR          = 104),
+                             (const ECODE_NODE_EXIST       = 105),
+                             (const ECODE_KEY_IS_PRESERVED = 106),
+                             (const ECODE_ROOT_R_ONLY      = 107),
+                             (const ECODE_DIR_NOT_EMPTY    = 108),
 
-                              const ECODE_VALUE_REQUIRED          = 200,
-                              const ECODE_PREV_VALUE_REQUIRED     = 201,
-                              const ECODE_TTL_NA_N                = 202,
-                              const ECODE_INDEX_NA_N              = 203,
-                              const ECODE_VALUE_OR_TTL_REQUIRED   = 204,
-                              const ECODE_TIMEOUT_NA_N            = 205,
-                              const ECODE_NAME_REQUIRED           = 206,
-                              const ECODE_INDEX_OR_VALUE_REQUIRED = 207,
-                              const ECODE_INDEX_VALUE_MUTEX       = 208,
-                              const ECODE_INVALID_FIELD           = 209,
+                             (const ECODE_VALUE_REQUIRED          = 200),
+                             (const ECODE_PREV_VALUE_REQUIRED     = 201),
+                             (const ECODE_TTL_NA_N                = 202),
+                             (const ECODE_INDEX_NA_N              = 203),
+                             (const ECODE_VALUE_OR_TTL_REQUIRED   = 204),
+                             (const ECODE_TIMEOUT_NA_N            = 205),
+                             (const ECODE_NAME_REQUIRED           = 206),
+                             (const ECODE_INDEX_OR_VALUE_REQUIRED = 207),
+                             (const ECODE_INDEX_VALUE_MUTEX       = 208),
+                             (const ECODE_INVALID_FIELD           = 209),
 
-                              const ECODE_RAFT_INTERNAL = 300,
-                              const ECODE_LEADER_ELECT  = 301,
+                             (const ECODE_RAFT_INTERNAL = 300),
+                             (const ECODE_LEADER_ELECT  = 301),
 
-                              const ECODE_WATCHER_CLEARED     = 400,
-                              const ECODE_EVENT_INDEX_CLEARED = 401)]
+                             (const ECODE_WATCHER_CLEARED     = 400),
+                             (const ECODE_EVENT_INDEX_CLEARED = 401)]
 
 const etcd_errors = {
     # command related errors
