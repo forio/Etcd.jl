@@ -30,5 +30,3 @@ function delete_leader(etcd::EtcdServer,leader::String;
         check_etcd_error
     end
 end
-
-

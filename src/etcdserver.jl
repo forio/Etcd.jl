@@ -9,6 +9,7 @@ type EtcdServer
     EtcdServer(ip::String="127.0.0.1",port::Int=4001) = new(ip,port)
 end
 
+
 function etcd_request(http_method,key::String,options=Dict{String,Any}())
     debug("Etcd $http_method called with:",{:key => key, :options => options})
     try
@@ -34,4 +35,10 @@ function check_etcd_error(etcd_response)
              {:reason => Base.get(etcd_errors,ec,"Unknown Error")})
     end
     etcd_response
+end
+
+function machines(etcd::EtcdServer)
+    etcd_request(Requests.get,
+                  "http://$(etcd.ip):$(etcd.port)/v2/machines") |>
+    check_etcd_error
 end
