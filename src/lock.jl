@@ -4,6 +4,8 @@ include("etcdserver.jl")
 lock_prefix(etcd::EtcdServer,
             lock::String) = "http://$(etcd.ip):$(etcd.port)/mod/v2/lock/$(lock)"
 
+# blocking until lock is available
+# TODO should add an async lock
 function lock_acquire(etcd::EtcdServer,lock::String;ttl::Union(Int,Nothing)=nothing)
     if is(ttl,nothing)
         warn("Must specify an integer value for lock ttl")
