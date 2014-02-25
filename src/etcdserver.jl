@@ -5,8 +5,8 @@ export EtcdServer
 type EtcdServer
     ip::String
     port::Int
-
-    EtcdServer(ip::String="127.0.0.1",port::Int=4001) = new(ip,port)
+    version::String
+    EtcdServer(ip::String="127.0.0.1",port::Int=4001) = new(ip,port,"v2")
 end
 
 

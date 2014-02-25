@@ -1,7 +1,8 @@
 
 include("etcdserver.jl")
 
-keys_prefix(etcd::EtcdServer,key::String) = "http://$(etcd.ip):$(etcd.port)/v2/keys$(key)"
+keys_prefix(etcd::EtcdServer,key::String) =
+    "http://$(etcd.ip):$(etcd.port)/$(etcd.version)/keys$(key)"
 
 function get(etcd::EtcdServer,key::String;
              sort::Bool=false,recursive::Bool=false)

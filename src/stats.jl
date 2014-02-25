@@ -1,8 +1,7 @@
 include("etcdserver.jl")
 
-# TODO macro-ized
 stats_prefix(etcd::EtcdServer,
-             stats_type) = "http://$(etcd.ip):$(etcd.port)/v2/stats/$(stats_type)"
+             stats_type) = "http://$(etcd.ip):$(etcd.port)/$(etcd.version)/stats/$(stats_type)"
 
 function stats(etcd::EtcdServer,stats_type::String)
     if stats_type != "leader" &&

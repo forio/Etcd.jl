@@ -1,8 +1,7 @@
 include("etcdserver.jl")
 
-# TODO macro-ized
 lock_prefix(etcd::EtcdServer,
-            lock::String) = "http://$(etcd.ip):$(etcd.port)/mod/v2/lock/$(lock)"
+            lock::String) = "http://$(etcd.ip):$(etcd.port)/mod/$(etcd.version)/lock/$(lock)"
 
 # blocking until lock is available
 # TODO should add an async lock

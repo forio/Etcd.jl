@@ -1,8 +1,7 @@
 include("etcdserver.jl")
 
-# TODO macro-ized
 leader_prefix(etcd::EtcdServer,
-              leader::String) = "http://$(etcd.ip):$(etcd.port)/mod/v2/leader/$(leader)"
+              leader::String) = "http://$(etcd.ip):$(etcd.port)/mod/$(etcd.version)/leader/$(leader)"
 
 function set_leader(etcd::EtcdServer,leader::String;
                     name::Union(String,Nothing)=nothing,
