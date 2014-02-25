@@ -1,6 +1,3 @@
-#export get, set, set_dir, create_dir, update_dir, create, update,
-       #create_in_order, create_in_order_dir, exists, delete,
-       #delete_dir, compare_and_swap, compare_and_delete, watch
 
 include("etcdserver.jl")
 
@@ -92,9 +89,12 @@ function create_in_order_dir(etcd::EtcdServer,key::String;
 end
 
 function exists(etcd::EtcdServer,key::String)
-   etcd_request(Requestset(etcd) ,string(keys_prefix,key)) |>
-   (rsp)->haskey(rsp,"errorCode")
+   etcd_request(Requests.get,keys_prefix(etcd,key)) |>
+   JSON.parse |>
+   (rsp)->!haskey(rsp,"errorCode")
 end
+
+has_key(etcd::EtcdServer,key::String) = exists(etcd,key)
 
 function delete(etcd::EtcdServer,key::String)
    etcd_request(Requests.delete,keys_prefix(etcd,key)) |>
@@ -102,7 +102,7 @@ function delete(etcd::EtcdServer,key::String)
    JSON.parse
 end
 
-function delete_dir(etcd::EtcdServer,key::String,recursive::Bool=false)
+function delete_dir(etcd::EtcdServer,key::String;recursive::Bool=false)
    etcd_request(Requests.delete,keys_prefix(etcd,key),
                 filter((k,v)->v,
                        {"dir"=>true,"recursive"=>recursive})) |>
@@ -110,7 +110,7 @@ function delete_dir(etcd::EtcdServer,key::String,recursive::Bool=false)
    JSON.parse
 end
 
-function compare_and_delete(etcd::EtcdServer,key::String,
+function compare_and_delete(etcd::EtcdServer,key::String;
                             prev_value::Union(String,Nothing)=nothing,
                             prev_index::Union(Int,Nothing)=nothing)
    if is(prev_value,nothing) && is(prev_index,nothing)
@@ -125,7 +125,7 @@ function compare_and_delete(etcd::EtcdServer,key::String,
     end
 end
 
-function compare_and_swap(etcd::EtcdServer,key::String,value::String,
+function compare_and_swap(etcd::EtcdServer,key::String,value::String;
                           prev_value::Union(String,Nothing)=nothing,
                           prev_index::Union(Int,Nothing)=nothing,
                           ttl::Union(Int,Nothing)=nothing)
@@ -143,9 +143,18 @@ function compare_and_swap(etcd::EtcdServer,key::String,value::String,
     end
 end
 
+test_and_set(etcd::EtcdServer,key::String,value::String;
+             prev_value::Union(String,Nothing)=nothing,
+             prev_index::Union(Int,Nothing)=nothing,
+             ttl::Union(Int,Nothing)=nothing) = compare_and_swap(etcd,key,value,
+                                                                 prev_value=prev_value,
+                                                                 prev_index=prev_index,
+                                                                 ttl=ttl)
+
+# TODO perhaps add a continous watch
 function watch(etcd::EtcdServer,key::String,cb::Function;
-              wait_index::Union(Int,Bool)=false,
-              recursive::Bool=false)
+               wait_index::Union(Int,Bool)=false,
+               recursive::Bool=false)
    @async begin
        etcd_request(Requests.get,keys_prefix(etcd,key),
                     filter((k,v)->v,
