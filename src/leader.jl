@@ -9,14 +9,14 @@ function set_leader(etcd::EtcdServer,leader::String;
     if is(name,nothing) && is(ttl,nothing)
         warn("Must specify a name and ttl for leader")
     else
-        etcd_request(Requests.put,leader_prefix(etcd,leader),
+        etcd_request(:put,leader_prefix(etcd,leader),
                     {"name"=>name,"ttl"=>ttl}) |>
         check_etcd_error
     end
 end
 
 function get_leader(etcd::EtcdServer,leader::String)
-    etcd_request(Requests.get,leader_prefix(etcd,leader)) |>
+    etcd_request(:get,leader_prefix(etcd,leader)) |>
     check_etcd_error
 end
 
@@ -25,7 +25,7 @@ function delete_leader(etcd::EtcdServer,leader::String;
     if is(name,nothing)
         warn("Must specify leader name for deletion")
     else
-        etcd_request(Requests.delete,leader_prefix(etcd,leader),{"name"=>name}) |>
+        etcd_request(:delete,leader_prefix(etcd,leader),{"name"=>name}) |>
         check_etcd_error
     end
 end

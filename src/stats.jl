@@ -9,7 +9,7 @@ function stats(etcd::EtcdServer,stats_type::String)
        stats_type != "store"
         warn("Stats : Must specify the stats_type to be one of: leader, self or store")
     else
-        etcd_request(Requests.get,stats_prefix(etcd,stats_type)) |>
+        etcd_request(:get,stats_prefix(etcd,stats_type)) |>
         check_etcd_error |>
         JSON.parse
     end
