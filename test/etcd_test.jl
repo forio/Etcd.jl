@@ -62,7 +62,15 @@ function test_etcd_create_dir(et)
 
     # Return kv-pairs in sorted order
     nodes = test_get(et,d_name,true,false)
-    println("nodes:",nodes)
+    @test length(nodes["node"]["nodes"]) == 2
+    @test nodes["node"]["nodes"][1]["key"] == "/fooDir/k0"
+    @test nodes["node"]["nodes"][1]["value"] == "v0"
+    @test nodes["node"]["nodes"][1]["ttl"] == ttl
+
+    @test nodes["node"]["nodes"][2]["key"] == "/fooDir/k1"
+    @test nodes["node"]["nodes"][2]["value"] == "v1"
+    @test nodes["node"]["nodes"][2]["ttl"] == ttl
+
     ch_dir = test_create_dir(et,d_name*"/childDir",ttl)
     k2 = test_set(et,d_name*"/childDir/k2", "v2", ttl)
 
