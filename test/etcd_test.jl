@@ -45,6 +45,26 @@ function test_etcd_set(et)
     @test set_node["node"]["ttl"] == 5
 end
 
+function test_etcd_update(et)
+    key = "/test_update"
+    val = "update-val"
+    new_val = "updatED-val"
+
+    test_set(et,key,val,5)
+
+    update = test_update(et,key,"updatED-val",5)
+    @test update["action"] == "update"
+    @test update["node"]["key"] == key
+    @test update["node"]["ttl"] == 5
+    @test update["node"]["value"] == new_val
+    @test update["prevNode"]["key"] == key
+    @test update["prevNode"]["value"] == val
+
+    # This should fail because the key does not exist.
+    update = test_update(et,"/nonexistent-key","anything",5)
+    @test haskey(update,"errorCode")
+end
+
 function test_etcd_get(et)
     key = "/foo"
     value = "bar"
@@ -243,7 +263,8 @@ function test_etcd()
                   test_etcd_delete,
                   test_etcd_delete_dir,
                   test_etcd_compare_and_delete,
-                  test_etcd_compare_and_swap
+                  test_etcd_compare_and_swap,
+                  test_etcd_update
                   ]
     [f(et) for f in test_funcs]
 end
