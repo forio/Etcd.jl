@@ -6,6 +6,7 @@ include("etcd_mock.jl")
 # instead of this interface here
 @etcd_mock test_machines(et) = Etcd.machines(et)
 @etcd_mock test_set(et,k,v,t) = Etcd.set(et,k,v,ttl=t)
+@etcd_mock test_update(et,k,v,t) = Etcd.update(et,k,v,ttl=t)
 @etcd_mock test_get(et,k,s,r) = Etcd.get(et,k,sort=s,recursive=r)
 @etcd_mock test_create_dir(et,k,t) = Etcd.create_dir(et,k,ttl=t)
 @etcd_mock test_add_child(et,k,v,t) = Etcd.add_child(et,k,v,ttl=t)
@@ -13,6 +14,13 @@ include("etcd_mock.jl")
 @etcd_mock test_delete(et,k) = Etcd.delete(et,k)
 @etcd_mock test_set_dir(et,k,t) = Etcd.set_dir(et,k,ttl=t)
 @etcd_mock test_delete_dir(et,k,r) = Etcd.delete_dir(et,k,recursive=r)
+@etcd_mock test_compare_and_delete(et,k,prvv,prvi) = Etcd.compare_and_delete(et,k,
+                                                                             prev_value=prvv,
+                                                                             prev_index=prvi)
+@etcd_mock test_compare_and_swap(et,k,v,pv,previ,t) = Etcd.compare_and_swap(et,k,v,
+                                                                            prev_value=pv,
+                                                                            prev_index=previ,
+                                                                            ttl=t)
 
 function setup_etcd()
     et = Etcd.EtcdServer()
@@ -157,6 +165,73 @@ function test_etcd_delete_dir(et)
     @test haskey(del_dir["node"],"value") == false
 end
 
+function test_etcd_compare_and_delete(et)
+    key = "/test_c_and_d"
+    val = "testvalue"
+    set_node = test_set(et,key,val,5)
+
+    cd = test_compare_and_delete(et,key,val,nothing)
+    @test cd["prevNode"]["value"] == val
+    @test cd["prevNode"]["key"] == key
+    @test cd["prevNode"]["ttl"] == 5
+
+    # verify that wrong value fails
+    set_node = test_set(et,key,val,6)
+    index = set_node["node"]["modifiedIndex"]
+
+    cd = test_compare_and_delete(et,key,"wrongval",nothing)
+    @test haskey(cd,"errorCode")
+
+    # should succeed due to correct prevIndex
+    cd = test_compare_and_delete(et,key,nothing,index)
+
+    @test cd["prevNode"]["value"] == val
+    @test cd["prevNode"]["key"] == key
+    @test cd["prevNode"]["ttl"] == 6
+
+    # test giving an incorrect index
+    set_node = test_set(et,key,val,7)
+
+    cd = test_compare_and_delete(et,key,nothing,123456)
+    @test haskey(cd,"errorCode")
+end
+
+function test_etcd_compare_and_swap(et)
+    key = "/test_c_and_s"
+    val = "testvalue"
+    set_node = test_set(et,key,val,5)
+
+    cs = test_compare_and_swap(et,key,"newval",val,nothing,5)
+    @test cs["node"]["value"] == "newval"
+    @test cs["node"]["key"] == key
+    @test cs["node"]["ttl"] == 5
+    @test cs["prevNode"]["value"] == val
+    @test cs["prevNode"]["key"] == key
+    @test cs["prevNode"]["ttl"] == 5
+
+    # verify that wrong prev value fails
+    set_node = test_set(et,key,val,6)
+    index = set_node["node"]["modifiedIndex"]
+
+    cs = test_compare_and_swap(et,key,"wrongval","wrongprevval",nothing,5)
+    @test haskey(cs,"errorCode")
+
+    # swap by index
+    cs = test_compare_and_swap(et,key,"newval",nothing,index,5)
+    @test cs["node"]["value"] == "newval"
+    @test cs["node"]["key"] == key
+    @test cs["node"]["ttl"] == 5
+    @test cs["prevNode"]["value"] == val
+    @test cs["prevNode"]["key"] == key
+    @test cs["prevNode"]["ttl"] == 6
+
+    # test giving an incorrect previous index
+    set_node = test_set(et,key,val,7)
+
+    cs = test_compare_and_swap(et,key,val,nothing,123456,5)
+    @test haskey(cs,"errorCode")
+end
+
 function test_etcd()
     et = setup_etcd()
     test_funcs = [test_etcd_machines,
@@ -166,7 +241,9 @@ function test_etcd()
                   test_etcd_add_child,
                   test_etcd_add_child_dir,
                   test_etcd_delete,
-                  test_etcd_delete_dir
+                  test_etcd_delete_dir,
+                  test_etcd_compare_and_delete,
+                  test_etcd_compare_and_swap
                   ]
     [f(et) for f in test_funcs]
 end

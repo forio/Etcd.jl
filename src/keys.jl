@@ -126,7 +126,7 @@ function compare_and_delete(etcd::EtcdServer,key::String;
                             prev_value::Union(String,Nothing)=nothing,
                             prev_index::Union(Int,Nothing)=nothing)
    if is(prev_value,nothing) && is(prev_index,nothing)
-       warn("Must specify both prev_value (a string) or prev_index (an integer)")
+       warn("Must specify either prev_value (a string) or prev_index (an integer)")
    else
        etcd_request(:delete,keys_prefix(etcd,key),
                     filter((k,v)->!is(v,nothing),
@@ -142,7 +142,7 @@ function compare_and_swap(etcd::EtcdServer,key::String,value::String;
                           prev_index::Union(Int,Nothing)=nothing,
                           ttl::Union(Int,Nothing)=nothing)
    if is(prev_value,nothing) && is(prev_index,nothing)
-       warn("Must specify both prev_value (a string) or prev_index (an integer)")
+       warn("Must specify either prev_value (a string) or prev_index (an integer)")
    else
        etcd_request(:put,keys_prefix(etcd,key),
                     filter((k,v)->!is(v,nothing),
