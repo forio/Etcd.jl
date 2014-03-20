@@ -84,6 +84,24 @@ function test_etcd_create(et)
     @test haskey(created,"errorCode")
 end
 
+function test_etcd_set_dir(et)
+    key = "/set_dir"
+    value = "bar"
+    ttl = 5
+    # set it
+    set_node = test_set(et,key,value,ttl)
+    @test haskey(set_node,"errorCode") == false
+
+    # This should succeed it should replace the key
+    set_dir = test_set_dir(et,key,5)
+    @test set_dir["node"]["key"] == key
+    @test haskey(set_dir["node"],"value") == false
+    @test set_dir["node"]["ttl"] == 5
+    @test set_dir["prevNode"]["key"] == key
+    @test set_dir["prevNode"]["value"] == value
+    @test set_dir["prevNode"]["ttl"] == 5
+end
+
 function test_etcd_get(et)
     key = "/foo"
     value = "bar"
@@ -284,7 +302,8 @@ function test_etcd()
                   test_etcd_compare_and_delete,
                   test_etcd_compare_and_swap,
                   test_etcd_update,
-                  test_etcd_create
+                  test_etcd_create,
+                  test_etcd_set_dir
                   ]
     [f(et) for f in test_funcs]
 end
