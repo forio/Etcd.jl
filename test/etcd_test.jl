@@ -7,6 +7,7 @@ include("etcd_mock.jl")
 @etcd_mock test_machines(et) = Etcd.machines(et)
 @etcd_mock test_set(et,k,v,t) = Etcd.set(et,k,v,ttl=t)
 @etcd_mock test_update(et,k,v,t) = Etcd.update(et,k,v,ttl=t)
+@etcd_mock test_create(et,k,v,t) = Etcd.create(et,k,v,ttl=t)
 @etcd_mock test_get(et,k,s,r) = Etcd.get(et,k,sort=s,recursive=r)
 @etcd_mock test_create_dir(et,k,t) = Etcd.create_dir(et,k,ttl=t)
 @etcd_mock test_add_child(et,k,v,t) = Etcd.add_child(et,k,v,ttl=t)
@@ -63,6 +64,24 @@ function test_etcd_update(et)
     # This should fail because the key does not exist.
     update = test_update(et,"/nonexistent-key","anything",5)
     @test haskey(update,"errorCode")
+end
+
+function test_etcd_create(et)
+    key = "/test_create"
+    val = "create-val"
+
+    # this should succeed
+    created = test_create(et,key,val,5)
+    @test haskey(created,"errorCode") == false
+    @test haskey(created,"prevNode") == false
+    @test created["action"] == "create"
+    @test created["node"]["key"] == key
+    @test created["node"]["value"] == val
+    @test created["node"]["ttl"] == 5
+
+    # this should fail since the key has been already created
+    created = test_create(et,key,val,6)
+    @test haskey(created,"errorCode")
 end
 
 function test_etcd_get(et)
@@ -264,7 +283,8 @@ function test_etcd()
                   test_etcd_delete_dir,
                   test_etcd_compare_and_delete,
                   test_etcd_compare_and_swap,
-                  test_etcd_update
+                  test_etcd_update,
+                  test_etcd_create
                   ]
     [f(et) for f in test_funcs]
 end
