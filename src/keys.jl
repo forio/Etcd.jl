@@ -163,7 +163,6 @@ test_and_set(etcd::EtcdServer,key::String,value::String;
                                                                  prev_index=prev_index,
                                                                  ttl=ttl)
 
-# TODO perhaps add a continous watch
 function watch(etcd::EtcdServer,key::String,cb::Function;
                wait_index::Union(Int,Bool)=false,
                recursive::Bool=false)
@@ -177,4 +176,24 @@ function watch(etcd::EtcdServer,key::String,cb::Function;
        JSON.parse |>
        cb
    end
+end
+
+function keep_watching(etcd::EtcdServer,key::String,cb::Function;
+                       wait_index::Union(Int,Bool)=false,
+                       recursive::Bool=false)
+   @async begin
+        while true
+           etcd_request(:get,keys_prefix(etcd,key),
+                        filter((k,v)->v,
+                        {"wait"=>true,
+                         "recursive"=>recursive,
+                          "waitIndex"=>wait_index})) |>
+                      check_etcd_error |>
+                      JSON.parse |>
+                      cb
+           if wait_index != false
+               wait_index += 1
+           end
+        end
+    end
 end
