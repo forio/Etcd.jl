@@ -10,6 +10,7 @@ include("etcd_mock.jl")
 @etcd_mock test_create(et,k,v,t) = Etcd.create(et,k,v,ttl=t)
 @etcd_mock test_get(et,k,s,r) = Etcd.get(et,k,sort=s,recursive=r)
 @etcd_mock test_create_dir(et,k,t) = Etcd.create_dir(et,k,ttl=t)
+@etcd_mock test_update_dir(et,k,t) = Etcd.update_dir(et,k,ttl=t)
 @etcd_mock test_add_child(et,k,v,t) = Etcd.add_child(et,k,v,ttl=t)
 @etcd_mock test_add_child_dir(et,k,t) = Etcd.add_child_dir(et,k,ttl=t)
 @etcd_mock test_delete(et,k) = Etcd.delete(et,k)
@@ -100,6 +101,32 @@ function test_etcd_set_dir(et)
     @test set_dir["prevNode"]["key"] == key
     @test set_dir["prevNode"]["value"] == value
     @test set_dir["prevNode"]["ttl"] == 5
+end
+
+function test_etcd_update_dir(et)
+    key = "/update_dir"
+
+    # make sure creating dir doesn't fail
+    cr = test_create_dir(et,key,5)
+    @test haskey(cr,"errorCode") == false
+
+    # updating the directory should succeed
+    up_dir = test_update_dir(et,key,5)
+    @test up_dir["action"] == "update"
+    @test up_dir["node"]["key"] == key
+    @test haskey(up_dir["node"],"value") == false
+    @test up_dir["node"]["ttl"] == 5
+    @test up_dir["prevNode"]["key"] == key
+    @test haskey(up_dir["prevNode"],"value") == false
+    @test up_dir["prevNode"]["ttl"] == 5
+    @test up_dir["prevNode"]["dir"] == true
+
+    # updating a non-exitent key should fail
+    up_dir = test_update_dir(et,"/nonexistent_key",5)
+    @test haskey(cr,"errorCode") == false
+end
+
+function test_etcd_create_dir(et)
 end
 
 function test_etcd_get(et)
@@ -303,7 +330,8 @@ function test_etcd()
                   test_etcd_compare_and_swap,
                   test_etcd_update,
                   test_etcd_create,
-                  test_etcd_set_dir
+                  test_etcd_set_dir,
+                  test_etcd_update_dir
                   ]
     [f(et) for f in test_funcs]
 end
