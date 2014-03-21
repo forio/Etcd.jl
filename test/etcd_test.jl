@@ -127,6 +127,19 @@ function test_etcd_update_dir(et)
 end
 
 function test_etcd_create_dir(et)
+    key = "/create_dir"
+    # make sure creating dir doesn't fail
+    cr = test_create_dir(et,key,5)
+    @test haskey(cr,"errorCode") == false
+    @test cr["action"] == "create"
+    @test cr["node"]["key"] == key
+    @test haskey(cr["node"],"value") == false
+    @test cr["node"]["ttl"] == 5
+    @test haskey(cr,"prevNode") == false
+
+    # This should fail, because the key is already there
+    cr = test_create_dir(et,key,6)
+    @test haskey(cr,"errorCode")
 end
 
 function test_etcd_get(et)
@@ -144,7 +157,7 @@ function test_etcd_get(et)
     @test get_node["node"]["value"] == value
 end
 
-function test_etcd_create_dir(et)
+function test_etcd_get_all(et)
     # create dir
     d_name = "/fooDir"
     ttl = 5
@@ -321,7 +334,7 @@ function test_etcd()
     test_funcs = [test_etcd_machines,
                   test_etcd_set,
                   test_etcd_get,
-                  test_etcd_create_dir,
+                  test_etcd_get_all,
                   test_etcd_add_child,
                   test_etcd_add_child_dir,
                   test_etcd_delete,
@@ -331,7 +344,8 @@ function test_etcd()
                   test_etcd_update,
                   test_etcd_create,
                   test_etcd_set_dir,
-                  test_etcd_update_dir
+                  test_etcd_update_dir,
+                  test_etcd_create_dir
                   ]
     [f(et) for f in test_funcs]
 end
