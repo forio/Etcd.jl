@@ -37,6 +37,19 @@ function check_etcd_error(etcd_response)
     etcd_response
 end
 
+function check_etcd_response(etcd_response)
+    if isa(etcd_response,Dict) && haskey(etcd_response,"errorCode")
+        ec = etcd_response["errorCode"]
+        warn("Request failed with error code $(ec)",
+             {:reason => Base.get(etcd_errors,ec,"Unknown Error")})
+    end
+    try
+        JSON.parse(etcd_response)
+    catch _
+        etcd_response
+    end
+end
+
 function machines(etcd::EtcdServer)
     etcd_request(:get,"http://$(etcd.ip):$(etcd.port)/$(etcd.version)/machines") |>
     check_etcd_error
