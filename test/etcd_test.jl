@@ -345,8 +345,7 @@ function test_etcd()
                   test_etcd_create,
                   test_etcd_set_dir,
                   test_etcd_update_dir,
-                  test_etcd_create_dir
-                  ]
+                  test_etcd_create_dir]
     [f(et) for f in test_funcs]
 end
 
