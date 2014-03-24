@@ -159,7 +159,7 @@ function watch(etcd::EtcdServer,key::String,cb::Function;
                            {"wait"=>true,
                             "recursive"=>recursive,
                             "waitIndex"=>wait_index})) |>
-       check_etcd_response
+       check_etcd_response |>
        cb
    end
 end
@@ -174,8 +174,8 @@ function keep_watching(etcd::EtcdServer,key::String,cb::Function;
                         {"wait"=>true,
                          "recursive"=>recursive,
                           "waitIndex"=>wait_index})) |>
-                      check_etcd_response
-                      cb
+            check_etcd_response |>
+            cb
            if wait_index != false
                wait_index += 1
            end
