@@ -9,8 +9,7 @@ function get(etcd::EtcdServer,key::String;
    etcd_request(:get,keys_prefix(etcd,key),
                 filter((k,v)->v,
                        {"sorted"=>sort,"recursive"=>recursive})) |>
-   check_etcd_error |>
-   JSON.parse
+   check_etcd_response
 end
 
 function set(etcd::EtcdServer,key::String,value::String;
@@ -18,8 +17,7 @@ function set(etcd::EtcdServer,key::String,value::String;
    etcd_request(:put,keys_prefix(etcd,key),
                 filter((k,v)->!is(v,nothing),
                        {"value"=>value,"ttl"=>ttl})) |>
-   check_etcd_error |>
-   JSON.parse
+   check_etcd_response
 end
 
 function set_dir(etcd::EtcdServer,key::String;
@@ -27,8 +25,7 @@ function set_dir(etcd::EtcdServer,key::String;
    etcd_request(:put,keys_prefix(etcd,key),
                 filter((k,v)->!is(v,nothing),
                        {"value"=>"","ttl"=>ttl,"dir"=>true})) |>
-   check_etcd_error |>
-   JSON.parse
+   check_etcd_response
 end
 
 function create_dir(etcd::EtcdServer,key::String;
@@ -37,8 +34,7 @@ function create_dir(etcd::EtcdServer,key::String;
                 filter((k,v)->!is(v,nothing),
                        {"value"=>"","ttl"=>ttl,
                         "prevExist"=>false,"dir"=>true})) |>
-   check_etcd_error |>
-   JSON.parse
+   check_etcd_response
 end
 
 function update_dir(etcd::EtcdServer,key::String;
@@ -47,8 +43,7 @@ function update_dir(etcd::EtcdServer,key::String;
                 filter((k,v)->!is(v,nothing),
                        {"value"=>"","ttl"=>ttl,
                         "prevExist"=>true,"dir"=>true})) |>
-   check_etcd_error |>
-   JSON.parse
+   check_etcd_response
 end
 
 function create(etcd::EtcdServer,key::String,value::String;
@@ -57,8 +52,7 @@ function create(etcd::EtcdServer,key::String,value::String;
                 filter((k,v)->!is(v,nothing),
                        {"value"=>value,"ttl"=>ttl,
                         "prevExist"=>false})) |>
-   check_etcd_error |>
-   JSON.parse
+   check_etcd_response
 end
 
 function update(etcd::EtcdServer,key::String,value::String;
@@ -67,8 +61,7 @@ function update(etcd::EtcdServer,key::String,value::String;
                 filter((k,v)->!is(v,nothing),
                        {"value"=>value,"ttl"=>ttl,
                         "prevExist"=>true})) |>
-   check_etcd_error |>
-   JSON.parse
+   check_etcd_response
 end
 
 function create_in_order(etcd::EtcdServer,key::String,value::String;
@@ -76,8 +69,7 @@ function create_in_order(etcd::EtcdServer,key::String,value::String;
    etcd_request(:post,keys_prefix(etcd,key),
                 filter((k,v)->!is(v,nothing),
                        {"value"=>value,"ttl"=>ttl})) |>
-   check_etcd_error |>
-   JSON.parse
+   check_etcd_response
 end
 
 add_child(etcd::EtcdServer,key::String,value::String;
@@ -91,8 +83,7 @@ function create_in_order_dir(etcd::EtcdServer,key::String;
    etcd_request(:post,keys_prefix(etcd,key),
                 filter((k,v)->!is(v,nothing),
                        {"value"=>"","ttl"=>ttl})) |>
-   check_etcd_error |>
-   JSON.parse
+   check_etcd_response
 end
 
 add_child_dir(etcd::EtcdServer,key::String;
@@ -110,16 +101,14 @@ has_key(etcd::EtcdServer,key::String) = exists(etcd,key)
 
 function delete(etcd::EtcdServer,key::String)
    etcd_request(:delete,keys_prefix(etcd,key)) |>
-   check_etcd_error |>
-   JSON.parse
+   check_etcd_response
 end
 
 function delete_dir(etcd::EtcdServer,key::String;recursive::Bool=false)
    etcd_request(:delete,keys_prefix(etcd,key),
                 filter((k,v)->v,
                        {"dir"=>true,"recursive"=>recursive})) |>
-   check_etcd_error |>
-   JSON.parse
+   check_etcd_response
 end
 
 function compare_and_delete(etcd::EtcdServer,key::String;
@@ -132,8 +121,7 @@ function compare_and_delete(etcd::EtcdServer,key::String;
                     filter((k,v)->!is(v,nothing),
                            {"prevValue"=>prev_value,
                             "prevIndex"=>prev_index})) |>
-       check_etcd_error |>
-       JSON.parse
+       check_etcd_response
     end
 end
 
@@ -150,8 +138,7 @@ function compare_and_swap(etcd::EtcdServer,key::String,value::String;
                             "prevValue"=>prev_value,
                             "prevIndex"=>prev_index,
                             "ttl"=>ttl})) |>
-       check_etcd_error |>
-       JSON.parse
+       check_etcd_response
     end
 end
 
@@ -172,8 +159,7 @@ function watch(etcd::EtcdServer,key::String,cb::Function;
                            {"wait"=>true,
                             "recursive"=>recursive,
                             "waitIndex"=>wait_index})) |>
-       check_etcd_error |>
-       JSON.parse |>
+       check_etcd_response
        cb
    end
 end
@@ -188,8 +174,7 @@ function keep_watching(etcd::EtcdServer,key::String,cb::Function;
                         {"wait"=>true,
                          "recursive"=>recursive,
                           "waitIndex"=>wait_index})) |>
-                      check_etcd_error |>
-                      JSON.parse |>
+                      check_etcd_response
                       cb
            if wait_index != false
                wait_index += 1
