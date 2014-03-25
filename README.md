@@ -186,14 +186,43 @@ julia> Etcd.keep_watching(etcd,"/foo/bar",ev->println("I'll keep on watching you
 #### Get all machines in the cluster
 
 ```julia
-julia> Etcd.machines(et)
+julia> Etcd.machines(etcd)
 "http://172.17.42.1:5001, http://172.17.42.1:5002, http://172.17.42.1:5003"
 ```
 
-#### Leader module
+#### Getting Etcd stats
 
-##### Set leader
+You can retrieve Etcd stats by specifying one of `store`, `self` or `leader`.
 
-##### Get leader of the cluster
+For example to get the `store` stats: 
+
+```julia
+julia> Etcd.stats(etcd,"store")
+["getsSuccess"=>193,"updateFail"=>88,"watchers"=>1,"setsSuccess"=>710,"setsFail"=>2869,"expireCount"=>460,"compareAndSwapSuccess"=>3,"getsFail"=>10,"deleteSuccess"=>8,"createFail"=>10,"createSuccess"=>25,"compareAndDeleteSuccess"=>3,"deleteFail"=>3,"compareAndSwapFail"=>1,"updateSuccess"=>386,"compareAndDeleteFail"=>0]
+```
+
+#### Leader/Election module
+
+Set a leader for the cluster (notice the leading slash is omitted) by specifying a name and a ttl as follows:
+ 
+```julia
+julia> Etcd.set_leader(etcd,"my-cluster",name="leader-1",ttl=60)
+"1853"
+```
+
+Get the leader of the cluster:
+
+```julia
+julia> Etcd.get_leader(etcd,"my-cluster")
+"leader-1"
+```
+
+Deleting the leader:
+
+```julia
+julia> Etcd.delete_leader(etcd,"my-cluster",name="leader-1")
+""
+```
 
 #### Locking module
+
