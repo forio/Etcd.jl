@@ -158,6 +158,30 @@ julia> Etcd.compare_and_delete(etl,"/foo/bar",prev_index=1849)
 ["action"=>"compareAndDelete","prevNode"=>["createdIndex"=>1849,"key"=>"/foo/bar","value"=>"Hello World","modifiedIndex"=>1849],"node"=>["createdIndex"=>1849,"key"=>"/foo/bar","modifiedIndex"=>1850]]
 ```
 
+#### Watching for changes
+
+Watch for only the next change on a key:
+
+```julia
+julia> Etcd.watch(etcd,"/foo/bar",ev->println("I'm watching you:",ev))
+Task (queued) @0x00000000024b65f0
+...
+... next make some modification to "/foo/bar" key and the callback is then called:
+...
+I'm watching you:["action"=>"update","prevNode"=>["createdIndex"=>1851,"key"=>"/foo/bar","value"=>"Hello World","modifiedIndex"=>1851],"node"=>["createdIndex"=>1851,"key"=>"/foo/bar","value"=>"Who's watching the watchers","modifiedIndex"=>1852]]
+```
+
+You can also specify the following options:
+
+- `recursive=true` to watch the key and all it's children.
+- `wait_index` to watch starting with the provided index.
+
+Continuously watch a key:
+
+```julia
+julia> Etcd.keep_watching(etcd,"/foo/bar",ev->println("I'll keep on watching you:",ev))
+.... The callback will keep getting called for every change to the key
+```
 
 #### Get all machines in the cluster
 
@@ -171,3 +195,5 @@ julia> Etcd.machines(et)
 ##### Set leader
 
 ##### Get leader of the cluster
+
+#### Locking module
