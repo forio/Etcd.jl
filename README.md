@@ -183,6 +183,12 @@ julia> Etcd.keep_watching(etcd,"/foo/bar",ev->println("I'll keep on watching you
 .... The callback will keep getting called for every change to the key
 ```
 
+Watch conditionally, while passing a function which will terminate the watch when it evaluates to `true`, for example:
+
+```julia
+julia> Etcd.watch_until(etcd,"/foo",ev->println("I'll be watching you (only 3 times):",ev),begin let l = 0; ev->begin l += 1; if l > 2 true else false end end end end,recursive=true)
+```
+
 #### Get all machines in the cluster
 
 ```julia
@@ -226,3 +232,29 @@ julia> Etcd.delete_leader(etcd,"my-cluster",name="leader-1")
 
 #### Locking module
 
+The lock module can be used to provide a distributed lock for resources among multiple clients. Only one client can have access to the lock at a time, once the lock holder releases the lock the next client waiting for the lock can acquire it.
+
+`lock_retrieve` gets the lock index of the lock. `lock_acquire` is used to acquire the lock and it will return the lock index.
+
+```julia
+... another client acquires the lock
+$ curl -L http://127.0.0.1:4001/mod/v2/lock/mylock -XPOST -d ttl=100
+1876
+julia> Etcd.lock_retrieve(etcd,"mylock")
+"1876"
+julia> Etcd.lock_acquire(etcd,"mylock",ttl=100)
+... blocks until ttl for lock expires or until lock is released ...
+"1878"
+```
+
+You can also renew the lock:
+
+```julia
+julia> Etcd.lock_renew(etcd,"mylock",index=1885,ttl=60)
+```
+
+And release the lock:
+
+```julia
+julia> Etcd.lock_release(etcd,"mylock",index=1890) 
+```

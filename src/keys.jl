@@ -182,3 +182,27 @@ function keep_watching(etcd::EtcdServer,key::String,cb::Function;
         end
     end
 end
+
+function watch_until(etcd::EtcdServer,key::String,
+                     cb::Function,
+                     should_terminate::Function;
+                     wait_index::Union(Int,Bool)=false,
+                     recursive::Bool=false)
+   @async begin
+       while true
+           ev = etcd_request(:get,keys_prefix(etcd,key),
+                        filter((k,v)->v,
+                        {"wait"=>true,
+                         "recursive"=>recursive,
+                         "waitIndex"=>wait_index})) |>
+                check_etcd_response
+           cb(ev)
+           if should_terminate(ev)
+               break
+           end
+           if wait_index != false
+               wait_index += 1
+           end
+       end
+    end
+end
