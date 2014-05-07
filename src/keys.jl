@@ -93,8 +93,16 @@ add_child_dir(etcd::EtcdServer,key::String;
 
 function exists(etcd::EtcdServer,key::String)
    etcd_request(:get,keys_prefix(etcd,key)) |>
-   JSON.parse |>
-   (rsp)->!haskey(rsp,"errorCode")
+   (rsp)->if isa(rsp,Dict)
+              try
+                  JSON.parse(rsp) |>
+                  (rsp)->!haskey(rsp,"errorCode")
+              catch
+                  false
+              end
+          else
+              false
+          end
 end
 
 has_key(etcd::EtcdServer,key::String) = exists(etcd,key)
@@ -167,18 +175,18 @@ end
 function keep_watching(etcd::EtcdServer,key::String,cb::Function;
                        wait_index::Union(Int,Bool)=false,
                        recursive::Bool=false)
-   @async begin
+    @async begin
         while true
-           etcd_request(:get,keys_prefix(etcd,key),
-                        filter((k,v)->v,
-                        {"wait"=>true,
-                         "recursive"=>recursive,
+            etcd_request(:get,keys_prefix(etcd,key),
+                         filter((k,v)->v,
+                         {"wait"=>true,
+                          "recursive"=>recursive,
                           "waitIndex"=>wait_index})) |>
             check_etcd_response |>
             cb
-           if wait_index != false
-               wait_index += 1
-           end
+            if wait_index != false
+                wait_index += 1
+            end
         end
     end
 end
