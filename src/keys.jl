@@ -92,17 +92,15 @@ add_child_dir(etcd::EtcdServer,key::String;
                                                                      ttl=ttl)
 
 function exists(etcd::EtcdServer,key::String)
-   etcd_request(:get,keys_prefix(etcd,key)) |>
-   (rsp)->if isa(rsp,Dict)
-              try
-                  JSON.parse(rsp) |>
-                  (rsp)->!haskey(rsp,"errorCode")
-              catch
+   rsp = etcd_request(:get,keys_prefix(etcd,key))
+   if !isa(rsp,Nothing)
+       JSON.parse(rsp) |>
+       (rsp)->if isa(rsp,Dict)
+                  !haskey(rsp,"errorCode")
+              else
                   false
               end
-          else
-              false
-          end
+    end
 end
 
 has_key(etcd::EtcdServer,key::String) = exists(etcd,key)
