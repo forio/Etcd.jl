@@ -1,6 +1,6 @@
 **[Quickstart](#quickstart)** |
 **[Configure the Etcd server](#configure-the-etcd-server)** |
-**[Using Etcd Client](#using-etcd-dclient)**
+**[Using Etcd Client](#using-etcd-client)**
 
 # Etcd.jl
 
