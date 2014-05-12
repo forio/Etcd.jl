@@ -161,32 +161,40 @@ test_and_set(etcd::EtcdServer,key::String,value::String;
 function watch(etcd::EtcdServer,key::String,cb::Function;
                wait_index::Union(Int,Bool)=false,
                recursive::Bool=false)
-   @async begin
-       etcd_request(:get,keys_prefix(etcd,key),
-                    filter((k,v)->v,
-                           {"wait"=>true,
-                            "recursive"=>recursive,
-                            "waitIndex"=>wait_index})) |>
-       check_etcd_response |>
-       cb
-   end
+    @async begin
+        try
+            etcd_request(:get,keys_prefix(etcd,key),
+                         filter((k,v)->v,
+                                {"wait"=>true,
+                                 "recursive"=>recursive,
+                                 "waitIndex"=>wait_index})) |>
+           check_etcd_response |>
+           cb
+        catch err
+            warn("watch failed $err for key $key")
+        end
+    end
 end
 
 function keep_watching(etcd::EtcdServer,key::String,cb::Function;
                        wait_index::Union(Int,Bool)=false,
                        recursive::Bool=false)
     @async begin
-        while true
-            etcd_request(:get,keys_prefix(etcd,key),
-                         filter((k,v)->v,
-                         {"wait"=>true,
-                          "recursive"=>recursive,
-                          "waitIndex"=>wait_index})) |>
-            check_etcd_response |>
-            cb
-            if wait_index != false
-                wait_index += 1
+        try
+            while true
+                etcd_request(:get,keys_prefix(etcd,key),
+                             filter((k,v)->v,
+                             {"wait"=>true,
+                              "recursive"=>recursive,
+                              "waitIndex"=>wait_index})) |>
+                check_etcd_response |>
+                cb
+                if wait_index != false
+                    wait_index += 1
+                end
             end
+        catch err
+            warn("keep_watching failed $err for key $key")
         end
     end
 end
@@ -196,21 +204,25 @@ function watch_until(etcd::EtcdServer,key::String,
                      should_terminate::Function;
                      wait_index::Union(Int,Bool)=false,
                      recursive::Bool=false)
-   @async begin
-       while true
-           ev = etcd_request(:get,keys_prefix(etcd,key),
-                        filter((k,v)->v,
-                        {"wait"=>true,
-                         "recursive"=>recursive,
-                         "waitIndex"=>wait_index})) |>
+    @async begin
+        try
+            while true
+                ev = etcd_request(:get,keys_prefix(etcd,key),
+                                  filter((k,v)->v,
+                                  {"wait"=>true,
+                                   "recursive"=>recursive,
+                                   "waitIndex"=>wait_index})) |>
                 check_etcd_response
-           cb(ev)
-           if should_terminate(ev)
-               break
-           end
-           if wait_index != false
-               wait_index += 1
-           end
-       end
+                cb(ev)
+                if should_terminate(ev)
+                    break
+                end
+                if wait_index != false
+                    wait_index += 1
+                end
+            end
+        catch err
+            warn("watch_until failed $err for key $key")
+        end
     end
 end
