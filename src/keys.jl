@@ -176,8 +176,53 @@ function watch(etcd::EtcdServer,key::String,cb::Function;
     end
 end
 
+function keep_watching_index(etcd::EtcdServer,key::String,cb::Function,
+                             wait_index::Int;
+                             recursive::Bool=false)
+    @async begin
+        try
+            while true
+                options = filter({"wait"=>true,"recursive"=>recursive,
+                                  "waitIndex"=>wait_index}) do k,v
+                                  if typeof(v) == Bool
+                                      v
+                                  else
+                                      true
+                                  end
+                           end
+                resp = etcd_request(:get,keys_prefix(etcd,key),options)
+                resp = try
+                           JSON.parse(resp)
+                       catch _
+                           resp
+                       end
+                # we handle the error here, since it provides us with the
+                # current index
+                if isa(resp,Dict) && haskey(resp,"errorCode")
+                    # extract index
+                    if haskey(resp,"index")
+                        wait_index = resp["index"] + 1
+                    else
+                        ec = resp["errorCode"]
+                        warn("Request failed with error code $(ec)",
+                             {:reason => Base.get(etcd_errors,ec,"Unknown Error")})
+                        break
+                    end
+                else
+                    cb(resp)
+                    wait_index = maximum([Base.get(resp["node"],"createdIndex",0),
+                                          Base.get(resp["node"],"modifiedIndex",0),
+                                          wait_index])
+                    wait_index += 1
+                end
+            end
+        catch err
+            warn("keep_watching_index failed $err for key $key")
+        end
+    end
+end
+
 function keep_watching(etcd::EtcdServer,key::String,cb::Function;
-                       wait_index::Union(Int,Bool)=false,
                        recursive::Bool=false)
     @async begin
         try
@@ -185,13 +230,9 @@ function keep_watching(etcd::EtcdServer,key::String,cb::Function;
                 etcd_request(:get,keys_prefix(etcd,key),
                              filter((k,v)->v,
                              {"wait"=>true,
-                              "recursive"=>recursive,
-                              "waitIndex"=>wait_index})) |>
+                              "recursive"=>recursive})) |>
                 check_etcd_response |>
                 cb
-                if wait_index != false
-                    wait_index += 1
-                end
             end
         catch err
             warn("keep_watching failed $err for key $key")
