@@ -208,7 +208,7 @@ function keep_watching_index(etcd::EtcdServer,key::String,cb::Function,
                              {:reason => Base.get(etcd_errors,ec,"Unknown Error")})
                         break
                     end
-                else
+                elseif !isa(resp,Nothing)
                     cb(resp)
                     wait_index = maximum([Base.get(resp["node"],"createdIndex",0),
                                           Base.get(resp["node"],"modifiedIndex",0),
