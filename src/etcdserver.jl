@@ -13,7 +13,7 @@ end
 # default to Requests
 http_lib(method::Symbol) = Expr(:.,:Requests,QuoteNode(method))
 
-function etcd_request(http_method,key::String,options=Dict{String,Any}())
+function etcd_request(http_method,key::String,options=Dict{String,Any}(),retries=3)
     debug("Etcd $http_method called with:",{:key => key, :options => options})
     try
         if isempty(options)
@@ -25,6 +25,10 @@ function etcd_request(http_method,key::String,options=Dict{String,Any}())
         etcd_response.data
     catch err
         warn("$http_method Request to server failed with $err")
+        if retries > 0
+            warn("Retrying $http_method request to server: $(retries - 1)")
+            etcd_request(http_method,key,options,retries-1)
+        end
     end
 end
 
