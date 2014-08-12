@@ -22,6 +22,15 @@ function etcd_request(http_method,key::String,options=Dict{String,Any}(),retries
             etcd_response = eval(Expr(:call,http_lib(http_method),
                                       key,Expr(:kw,:query,options)))
         end
+        if in(etcd_response.status,300:400) &&
+           haskey(etcd_response.headers,"Location")
+            if retries > 0
+                location = etcd_response.headers["Location"]
+                debug("Follow $http_method $location request to server $(retries - 1)")
+                # for now follow everything and use our retry limit
+                return etcd_request(http_method,location,options,retries-1)
+            end
+        end
         etcd_response.data
     catch err
         warn("$http_method Request to server failed with $err")
