@@ -1,11 +1,24 @@
+immutable HTTPError <: Exception
+    resp::Response
+end
+
+response(err::HTTPError) = err.resp
+
+function showerror(io::IO, err::HTTPError)
+    msg = readstring(resp)
+    println("HTTPError: $msg")
+end
+
 immutable EtcdError <: Exception
     resp::Dict
 end
 
+response(err::EtcdError) = err.resp
+
 function showerror(io::IO, err::EtcdError)
     err_code = err.resp["errorCode"]
     msg = get(err.resp, "message", "Unknown error")
-    println(io, "EtcdError: $(err.msg) ($(err.rc)).")
+    println(io, "EtcdError: $msg ($err_code).")
 end
 
 function request(f::Function, uri::String, opts::Dict; n=5, max_delay=10.0)
@@ -25,11 +38,9 @@ function request(f::Function, uri::String, opts::Dict; n=5, max_delay=10.0)
 
     if isa(data, Dict) && Base.haskey(data, "errorCode")
         throw(EtcdError(data))
+    elseif statuscode(resp) >= 400
+        throw(HTTPError(resp))
     end
 
     return data
-end
-
-function request(f::Function, cli::AbstractClient, key::String, args...; kwargs...)
-    return request(f, uri(cli, key), args...; kwargs...)
 end

@@ -1,17 +1,12 @@
 module Etcd
 
 using Requests
+import HttpCommon: Response
 
-abstract AbstractClient
-
-macro client(name)
-    return quote
-        immutable $name <: AbstractClient
-            host::String
-            port::Int
-            version::String
-        end
-    end
+immutable Client
+    host::String
+    port::Int
+    version::String
 end
 
 include("constants.jl")
@@ -19,18 +14,28 @@ include("requests.jl")
 include("api.jl")
 include("utils.jl")
 
-global const ETCD_CLIENTS = Dict(
-    :machines => MachinesClient,
-    :keys => KeysClient,
-    :leaders => LeadersClient,
-    :locks => LocksClient,
-    :stats => StatsClient,
-)
-
-function connect(client::Symbol, ip::String="localhost", port::Int=2379, version="v2")
-    return ETCD_CLIENTS[client](ip, port, version)
+function connect(host::String="localhost", port::Int=2379, version="v2")
+    return Client(host, port, version)
 end
 
-export machines, set, create, update, setdir, createdir, updatedir, cas, cad, EtcdError
+export
+    # methods
+    machines,
+    stats,
+    members,
+    leader,
+    set,
+    create,
+    update,
+    setdir,
+    createdir,
+    updatedir,
+    delete,
+    cas,
+    cad,
+
+    # Types
+    HTTPError,
+    EtcdError
 
 end # module

@@ -2,23 +2,43 @@ using Base.Test
 using Etcd
 
 info("Starting etcd server...")
-const timeout = 45
+const timeout = 60
 const server = Etcd.start(timeout)  # Start server with timeout of 60 sec
 const host = "localhost"
 const port = 2379
 const version = "v2"
 
 @testset "Etcd" begin
+    cli = Etcd.connect(host, port, version)
+
     @testset "machines" begin
-        cli = Etcd.connect(:machines)
-        result = machines(cli)
-        @test contains(result, host)
-        @test contains(result, "$port")
+        resp = machines(cli)
+        @test isa(resp, AbstractArray)
+        @test length(resp) == 2
+        @test contains(resp[1], host)
+        @test contains(resp[1], "$port")
+    end
+
+    @testset "stats" begin
+        resp = stats(cli, "store")
+        @test isa(resp, Dict)
+        resp = stats(cli, "self")
+        @test isa(resp, Dict)
+        @test_throws HTTPError stats(cli, "foobar")
+    end
+
+    @testset "members" begin
+        resp = members(cli)
+        @test isa(resp, Dict)
+        @test length(resp) == 1
+    end
+
+    @testset "leaders" begin
+        resp = leader(cli)
+        @test isa(resp, Dict)
     end
 
     @testset "keys" begin
-        cli = Etcd.connect(:keys)
-
         @testset "set" begin
             resp = set(cli, "/mykey", "myvalue"; ttl=1)
             @test isa(resp, Dict)
@@ -46,7 +66,6 @@ const version = "v2"
             @test resp["node"]["value"] == "myvalue"
 
             @test_throws EtcdError create(cli, "/mykey", "myvalue"; ttl=1)
-            # create(cli, "/mykey", "myvalue"; ttl=1)
             sleep(3)    # expire
         end
 
@@ -181,15 +200,6 @@ const version = "v2"
 
         @testset "watchuntil" begin
         end
-    end
-
-    @testset "leader" begin
-    end
-
-    @testset "lock" begin
-    end
-
-    @testset "stats" begin
     end
 end
 
