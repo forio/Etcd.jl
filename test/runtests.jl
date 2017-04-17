@@ -2,7 +2,7 @@ using Base.Test
 using Etcd
 
 info("Starting etcd server...")
-const timeout = 60
+const timeout = 600
 const server = Etcd.start(timeout)  # Start server with timeout of 60 sec
 const host = "localhost"
 const port = 2379
