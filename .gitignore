@@ -12,3 +12,6 @@
 
 /docs/build/
 /docs/site/
+
+/test/etcd*
+/test/default*
