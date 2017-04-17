@@ -3,6 +3,10 @@
 **[Using Etcd Client](#using-etcd-client)**
 
 # Etcd.jl
+[![stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://Rory-Finnegan.github.io/Etcd.jl/stable/)
+[![latest](https://img.shields.io/badge/docs-latest-blue.svg)](https://Rory-Finnegan.github.io/Etcd.jl/latest/)
+[![Build Status](https://travis-ci.org/Rory-Finnegan/Etcd.jl.svg?branch=master)](https://travis-ci.org/Rory-Finnegan/Etcd.jl)
+[![codecov](https://codecov.io/gh/Rory-Finnegan/Etcd.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/Rory-Finnegan/Etcd.jl)
 
 A Julia [Etcd](https://github.com/coreos/etcd) client implementation.
 
@@ -19,13 +23,13 @@ The library defaults to Etcd server at 127.0.0.1:2379.
 
 
 ```julia
-cli = Etcd.connect(:keys, "127.0.0.1", 2379,"v2")
+cli = Etcd.connect("127.0.0.1", 2379,"v2")
 ```
 
 Or you can specify the server ip address and port number.
 
 ```julia
-cli = Etcd.connect(:keys, "172.17.42.1", 5001)
+cli = Etcd.connect("172.17.42.1", 5001)
 ```
 
 ### Using Etcd Client
@@ -33,7 +37,7 @@ cli = Etcd.connect(:keys, "172.17.42.1", 5001)
 #### Get all machines in the cluster
 
 ```julia
-julia> Etcd.connect(:machines, "127.0.0.1", 2379, "v2")
+julia> Etcd.connect("127.0.0.1", 2379, "v2")
 
 julia> machines(cli)
 ```
@@ -42,7 +46,7 @@ julia> machines(cli)
 
 
 ```julia
-cli = Etcd.connect(:keys, "127.0.0.1", 2379, "v2")
+cli = Etcd.connect("127.0.0.1", 2379, "v2")
 ```
 
 Set a value on the `/foo/bar` key:
