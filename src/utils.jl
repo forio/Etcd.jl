@@ -20,7 +20,11 @@ function start(timeout=-1)
     end
 
     if timeout > 0
-        return spawn(`timeout $timeout $ETCD_BIN`)
+        if is_apple()
+            return spawn(`gtimeout $timeout $ETCD_BIN`)
+        else
+            return spawn(`timeout $timeout $ETCD_BIN`)
+        end
     else
         return spawn(`$ETCD_BIN`)
     end
