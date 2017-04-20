@@ -33,6 +33,9 @@ export
     delete,
     cas,
     cad,
+    watch,
+    watchloop,
+    watchuntil,
 
     # Types
     HTTPError,

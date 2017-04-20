@@ -2,7 +2,8 @@ using Base.Test
 using Etcd
 
 info("Starting etcd server...")
-const timeout = 600
+const timeout = 600     # A longer timeout for travis testing
+# const timeout = 60    # More reasonable local timeout
 const server = Etcd.start(timeout)  # Start server with timeout of 60 sec
 const host = "localhost"
 const port = 2379
@@ -130,16 +131,31 @@ const version = "v2"
             sleep(3)    # expire
         end
 
-        @testset "create_in_order" begin
-        end
+        @testset "ordered_set" begin
+            resp = set(cli, "/queue", "Job1"; ttl=3, ordered=true)
+            @test isa(resp, Dict)
+            @test haskey(resp, "action")
+            @test resp["action"] == "create"
+            @test haskey(resp, "node")
+            @test haskey(resp["node"], "value")
+            @test resp["node"]["value"] == "Job1"
+            resp = set(cli, "/queue", "Job2"; ttl=2, ordered=true)
+            @test isa(resp, Dict)
+            @test haskey(resp, "action")
+            @test resp["action"] == "create"
+            @test haskey(resp, "node")
+            @test haskey(resp["node"], "value")
+            @test resp["node"]["value"] == "Job2"
+            resp = get(cli, "/queue"; sort=true, recursive=true)
+            @test isa(resp, Dict)
+            @test haskey(resp, "action")
+            @test resp["action"] == "get"
+            @test haskey(resp, "node")
+            @test haskey(resp["node"], "nodes")
+            @test isa(resp["node"]["nodes"], AbstractArray)
+            @test length(resp["node"]["nodes"]) == 2
 
-        @testset "add_child" begin
-        end
-
-        @testset "create_in_order_dir" begin
-        end
-
-        @testset "add_child_dir" begin
+            sleep(3)
         end
 
         @testset "haskey" begin
@@ -193,12 +209,62 @@ const version = "v2"
         end
 
         @testset "watch" begin
+            c = Channel{Dict}(32)
+            set_resp = set(cli, "/mykey", "myvalue"; ttl=2)
+            idx = set_resp["node"]["modifiedIndex"] + 1
+
+            t = watch(cli, "/mykey"; wait_index=idx, recursive=true) do resp
+                put!(c, resp)
+            end
+
+            set_resp = set(cli, "/mykey", "newvalue"; ttl=2)
+            wait(t)
+            @test set_resp == take!(c)
+
+            sleep(2)
         end
 
         @testset "watchloop" begin
+            c = Channel{Dict}(32)
+
+            t = watchloop(cli, "/mykey"; recursive=true) do resp
+                put!(c, resp)
+            end
+
+            set_resp = set(cli, "/mykey", "val1"; ttl=1)
+            @test set_resp == take!(c)
+            set_resp = set(cli, "/mykey", "val2"; ttl=1)
+            @test set_resp == take!(c)
+            try
+                schedule(t, InterruptException(); error=true)
+                wait(t)
+            end
+
+            sleep(2)
         end
 
         @testset "watchuntil" begin
+            c = Channel{Dict}(32)
+            set_resp = set(cli, "/mykey", "val1"; ttl=2)
+            idx = set_resp["node"]["modifiedIndex"] + 1
+            predicate(r) = r["node"]["modifiedIndex"] > 5
+
+            t = watchuntil(cli, "/mykey", predicate; wait_index=idx, recursive=true) do resp
+                put!(c, resp)
+            end
+
+            i = 2
+            set_resp = set(cli, "/mykey", "val$i"; ttl=1)
+            sleep(0.2)
+            while isready(c)
+                @test set_resp == take!(c)
+                i += 1
+                set_resp = set(cli, "/mykey", "val$i"; ttl=1)
+                sleep(0.2)
+            end
+
+            wait(t)
+            sleep(2)
         end
     end
 end

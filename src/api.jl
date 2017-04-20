@@ -47,8 +47,13 @@ function keysuri(cli::Client, key::String)
 end
 
 function Base.get(cli::Client, key::String; sort::Bool=false, recursive::Bool=false)
-    opts = Dict{String, Any}("sorted" => sort, "recursive" => recursive)
-    opts = filter!((key, val) -> val, opts)
+    return get(cli, key, Dict{String, Any}(); sort=sort, recursive=recursive)
+end
+
+function Base.get(cli::Client, key::String, opts::Dict{String, Any}; sort::Bool=false, recursive::Bool=false)
+    opts["sorted"] = sort
+    opts["recursive"] = recursive
+    opts = filter!((key, val) -> !isa(val, Bool) || val, opts)
     return request(Requests.get, keysuri(cli, key), opts)
 end
 
@@ -72,9 +77,14 @@ function delete(cli::Client, key::String, opts::Dict{String, Any})
     return request(Requests.delete, keysuri(cli, key), opts)
 end
 
-function set(cli::Client, key::String, value::String; ttl::Int=-1)
+function set(cli::Client, key::String, value::String; ttl::Int=-1, ordered=false)
     opts = Dict{String, Any}("value" => value)
-    return put(cli, key, opts; ttl=ttl)
+
+    if ordered
+        return post(cli, key, opts; ttl=ttl)
+    else
+        return put(cli, key, opts; ttl=ttl)
+    end
 end
 
 function setdir(cli::Client, key::String; ttl::Int=-1)
@@ -100,24 +110,6 @@ end
 function updatedir(cli::Client, key::String; ttl::Int=-1)
     opts = Dict{String, Any}("value" => "", "prevExist" => true, "dir" => true)
     return put(cli, key, opts; ttl=ttl)
-end
-
-function create_in_order(cli::Client, key::String, value::String; ttl::Int=-1)
-     opts = Dict{String, Any}("value" => value)
-     return post(cli, key, opts; ttl=ttl)
-end
-
-function add_child(cli::Client, key::String, value::String; ttl::Int=-1)
-    return create_in_order(cli, key, value; ttl=ttl)
-end
-
-function create_in_order_dir(cli::Client, key::String; ttl::Int=-1)
-    opts = Dict{String, Any}("value" => "")
-    return post(cli, key, opts; ttl=ttl)
-end
-
-function add_child_dir(cli::Client, key::String; ttl::Int=-1)
-    return create_in_order_dir(cli, key, ttl=ttl)
 end
 
 function exists(cli::Client, key::String)
@@ -180,8 +172,96 @@ function watch(
     f::Function, cli::Client, key::String;
     wait_index::Int=-1, recursive::Bool=false
 )
-    @async begin
-        try
+    t = @async begin
+        opts = Dict{String, Any}("wait" => true)
+
+        if recursive
+            opts["recursive"] = recursive
+        end
+
+        if wait_index > 0
+            opts["waitIndex"] = wait_index
+        end
+
+        resp = get(cli, key, opts)
+        f(resp)
+    end
+
+    return t
+end
+
+function watchloop(
+    f::Function, cli::Client, key::String, wait_index::Int;
+    recursive::Bool=false
+)
+    t = @async begin
+        while true
+            opts = Dict{String, Any}(
+                "wait" => true,
+                "waitIndex" => wait_index
+            )
+
+            if recursive
+                opts["recursive"] = recursive
+            end
+
+            resp = get(cli, key, opts)
+            resp = try
+                JSON.parse(resp)
+            catch err
+                resp
+            end
+
+            # we handle the error here, since it provides us with the
+            # current index
+            if isa(resp, Dict) && haskey(resp, "errorCode")
+                # extract index
+                if haskey(resp,"index")
+                    wait_index = resp["index"] + 1
+                else
+                    err_code = resp["errorCode"]
+                    reason = get(ETCD_ERRORS, err_code, "Unknown Error")
+                    warn("Request Failed ($(err_code)): $reason")
+                    break
+                end
+            elseif !isa(resp, Void)
+                f(resp)
+                wait_index = maximum([
+                    Base.get(resp["node"],"createdIndex",0),
+                    Base.get(resp["node"],"modifiedIndex",0),
+                    wait_index
+                ])
+                wait_index += 1
+            end
+        end
+    end
+
+    return t
+end
+
+function watchloop(f::Function, cli::Client, key::String; recursive::Bool=false)
+    t = @async begin
+        while true
+            opts = Dict{String, Any}("wait" => true)
+
+            if recursive
+                opts["recursive"] = recursive
+            end
+
+            resp = get(cli, key, opts)
+            f(resp)
+        end
+    end
+
+    return t
+end
+
+function watchuntil(
+    f::Function, cli::Client, key::String, p::Function;
+    wait_index::Int=-1, recursive::Bool=false
+)
+    t = @async begin
+        while true
             opts = Dict{String, Any}("wait" => true)
 
             if recursive
@@ -193,113 +273,17 @@ function watch(
             end
 
             resp = get(cli, key, opts)
-            return f(resp)
-        catch err
-            warn("watch failed $err for key $key")
-        end
-    end
-end
+            f(resp)
 
-function watchloop(
-    f::Function, cli::Client, key::String, wait_index::Int;
-    recursive::Bool=false
-)
-    @async begin
-        try
-            while true
-                opts = Dict{String, Any}(
-                    "wait" => true,
-                    "waitIndex" => wait_index
-                )
-
-                if recursive
-                    opts["recursive"] = recursive
-                end
-
-                resp = get(cli, key, opts)
-                resp = try
-                    JSON.parse(resp)
-                catch err
-                    resp
-                end
-
-                # we handle the error here, since it provides us with the
-                # current index
-                if isa(resp, Dict) && haskey(resp,"errorCode")
-                    # extract index
-                    if haskey(resp,"index")
-                        wait_index = resp["index"] + 1
-                    else
-                        err_code = resp["errorCode"]
-                        reason = get(ETCD_ERRORS, err_code, "Unknown Error")
-                        warn("Request Failed ($(err_code)): $reason")
-                        break
-                    end
-                elseif !isa(resp, Void)
-                    f(resp)
-                    wait_index = maximum([
-                        Base.get(resp["node"],"createdIndex",0),
-                        Base.get(resp["node"],"modifiedIndex",0),
-                        wait_index
-                    ])
-                    wait_index += 1
-                end
+            if p(resp)
+                break
             end
-        catch err
-            warn("keep_watching_index failed $err for key $key")
-        end
-    end
-end
 
-function watchloop(f::Function, cli::Client, key::String; recursive::Bool=false)
-    @async begin
-        try
-            while true
-                opts = Dict{String, Any}("wait" => true)
-
-                if recursive
-                    opts["recursive"] = recursive
-                end
-
-                resp = get(cli, key, opts)
-                f(resp)
+            if wait_index > 0
+                wait_index += 1
             end
-        catch err
-            warn("keep_watching failed $err for key $key")
         end
     end
-end
 
-function watchuntil(
-    f::Function, cli::Client, key::String, p::Function;
-    wait_index::Int=-1, recursive::Bool=false
-)
-    @async begin
-        try
-            while true
-                opts = Dict{String, Any}("wait" => true)
-
-                if recursive
-                    opts["recursive"] = recursive
-                end
-
-                if wait_index > 0
-                    opts["waitIndex"] = wait_index
-                end
-
-                resp = get(cli, key, opts)
-                f(resp)
-
-                if p(resp)
-                    break
-                end
-
-                if wait_index > 0
-                    wait_index += 1
-                end
-            end
-        catch err
-            warn("watch_until failed $err for key $key")
-        end
-    end
+    return t
 end
