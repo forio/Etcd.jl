@@ -2,3 +2,16 @@
 *.swo
 .DS_Store
 .vagrant
+
+*.jl.cov
+*.jl.*.cov
+*.jl.mem
+
+/deps/*
+!/deps/build.jl
+
+/docs/build/
+/docs/site/
+
+/test/etcd*
+/test/default*

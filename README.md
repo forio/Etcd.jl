@@ -3,6 +3,10 @@
 **[Using Etcd Client](#using-etcd-client)**
 
 # Etcd.jl
+[![stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://Rory-Finnegan.github.io/Etcd.jl/stable/)
+[![latest](https://img.shields.io/badge/docs-latest-blue.svg)](https://Rory-Finnegan.github.io/Etcd.jl/latest/)
+[![Build Status](https://travis-ci.org/Rory-Finnegan/Etcd.jl.svg?branch=master)](https://travis-ci.org/Rory-Finnegan/Etcd.jl)
+[![codecov](https://codecov.io/gh/Rory-Finnegan/Etcd.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/Rory-Finnegan/Etcd.jl)
 
 A Julia [Etcd](https://github.com/coreos/etcd) client implementation.
 
@@ -15,92 +19,89 @@ julia> using Etcd
 
 ### Configure the Etcd server
 
-The library defaults to Etcd server at 127.0.0.1:4001.
+The library defaults to Etcd server at 127.0.0.1:2379.
 
 
 ```julia
-server = Etcd.EtcdServer()
-EtcdServer("127.0.0.1",4001,"v2")
+cli = Etcd.connect("127.0.0.1", 2379,"v2")
 ```
 
 Or you can specify the server ip address and port number.
 
 ```julia
-server = Etcd.EtcdServer("172.17.42.1",5001)
-EtcdServer("172.17.42.1",5001,"v2")
+cli = Etcd.connect("172.17.42.1", 5001)
 ```
 
 ### Using Etcd Client
+
+#### Get all machines in the cluster
+
+```julia
+julia> Etcd.connect("127.0.0.1", 2379, "v2")
+
+julia> machines(cli)
+```
 
 #### Setting Key Values
 
 
 ```julia
-etcd = Etcd.EtcdServer()
-EtcdServer("127.0.0.1",4001,"v2")
+cli = Etcd.connect("127.0.0.1", 2379, "v2")
 ```
 
 Set a value on the `/foo/bar` key:
 
 ```julia
-julia> Etcd.set(etcd,"/foo/bar","Hello World")
-["action"=>"set","node"=>["createdIndex"=>1803,"key"=>"/foo/bar","value"=>"Hello World","modifiedIndex"=>1803]]
+julia> set(cli, "/foo/bar", "Hello World")
 ```
 
 Set a value on the `/foo/bar` key with a value that expires in 60 seconds:
 
 ```julia
-julia> Etcd.set(etcd,"/foo/bar","Hello World",ttl=60)
-["action"=>"set","node"=>["createdIndex"=>1805,"key"=>"/foo/bar","value"=>"Hello World","expiration"=>"2014-03-25T01:19:39.182867998Z","ttl"=>60,"modifiedIndex"=>1805]]
+julia> set(cli, "/foo/bar", "Hello World", ttl=60)
 ```
 
 Note that the ttl value can be set with all the following commands by specifying `ttl=ttl_expiry_time_in_seconds`
 
-Conditionally set a value on `/foo/bar` if the previous value was "Hello world". `test_and_set` is an alias for `compare_and_swap`. 
+Conditionally set a value on `/foo/bar` if the previous value was "Hello world". `test_and_set` is an alias for `compare_and_swap`.
 
 ```julia
-julia> Etcd.compare_and_swap(etcd,"/foo/bar","Goodbye Cruel World",prev_value="Hello World")
-["action"=>"compareAndSwap","prevNode"=>["createdIndex"=>1811,"key"=>"/foo/bar","value"=>"Hello World","modifiedIndex"=>1811],"node"=>["createdIndex"=>1811,"key"=>"/foo/bar","value"=>"Goodbye Cruel World","modifiedIndex"=>1812]]
+julia> cas(cli, "/foo/bar", "Goodbye Cruel World", prev_value="Hello World")
 ```
 
 You can also conditionally set a value based on the previous etcd index.
 Conditionally set a value on `/foo/bar` if the previous etcd index was 1818:
 
 ```julia
-julia> Etcd.compare_and_swap(etcd,"/foo/bar","Goodbye Cruel World",prev_index=1818)
-["action"=>"compareAndSwap","prevNode"=>["createdIndex"=>1818,"key"=>"/foo/bar","value"=>"Hello World","modifiedIndex"=>1818],"node"=>["createdIndex"=>1818,"key"=>"/foo/bar","value"=>"Goodbye Cruel World","modifiedIndex"=>1820]]
+julia> cas(cli, "/foo/bar"," Goodbye Cruel World", prev_index=1818)
 ```
 
 Create a new key `/foo/boo`, only if the key did not previously exist:
 
 ```julia
-julia> Etcd.create(etcd,"/foo/boo","Hello World")
-["action"=>"create","node"=>["createdIndex"=>1822,"key"=>"/foo/boo","value"=>"Hello World","modifiedIndex"=>1822]]
+julia> create(cli, "/foo/boo", "Hello World")
 ```
 
 Create a new dir `/fooDir`, only if the directory did not previously exist:
 
 ```julia
-julia> Etcd.create_dir(etcd,"/fooDir")
-["action"=>"create","node"=>["createdIndex"=>1826,"key"=>"/fooDir","dir"=>true,"modifiedIndex"=>1826]]
+julia> createdir(cli, "/fooDir")
 ```
 
 Update an existing key `/foo/bar`, only if the key already existed:
 
 ```julia
-julia> Etcd.update(etcd,"/foo/boo","Merhaba")
-["action"=>"update","prevNode"=>["createdIndex"=>1822,"key"=>"/foo/boo","value"=>"Hello World","modifiedIndex"=>1822],"node"=>["createdIndex"=>1822,"key"=>"/foo/boo","value"=>"Merhaba","modifiedIndex"=>1828]]
+julia> update(cli, "/foo/boo", "Merhaba")
 ```
 
-You can also Create (`create_dir`) or update (`update_dir`) a directory.
+You can also Create (`createdir`) or update (`updatedir`) a directory.
 
 #### Retrieving key values
 
 Get the current value for a single key in the local etcd node:
 
 ```julia
-julia> Etcd.get(etcd,"/foo/bar")
-["action"=>"get","node"=>["createdIndex"=>1817,"key"=>"/foo/bar","value"=>"Hello World","modifiedIndex"=>1817]]
+julia> get(cli,"/foo/bar")
 ```
 
 Add `recursive=true` to recursively list sub-directories.
@@ -108,7 +109,7 @@ Add `recursive=true` to recursively list sub-directories.
 Check for existence of a key:
 
 ```julia
-julia> Etcd.exists(etcd,"/foo/bar")
+julia> exists(cli,"/foo/bar")
 true
 ```
 
@@ -117,45 +118,40 @@ true
 Delete a key:
 
 ```julia
-julia> Etcd.create_dir(etcd,"/foo/qux")
-julia> Etcd.delete(etcd,"/foo/boo")
-["action"=>"delete","prevNode"=>["createdIndex"=>1822,"key"=>"/foo/boo","value"=>"Merhaba","modifiedIndex"=>1828],"node"=>["createdIndex"=>1822,"key"=>"/foo/boo","modifiedIndex"=>1837]]
+julia> createdir(cli, "/foo/qux")
+julia> delete(cli, "/foo/boo")
 ```
 
 Delete an empty directory:
 
 ```julia
-julia> Etcd.delete_dir(etcd,"/foo/qux")
-["action"=>"delete","prevNode"=>["createdIndex"=>1838,"key"=>"/foo/qux","dir"=>true,"modifiedIndex"=>1838],"node"=>["createdIndex"=>1838,"key"=>"/foo/qux","dir"=>true,"modifiedIndex"=>1839]] 
+julia> deletedir(cli, "/foo/qux")
 ```
 
 Recursively delete a key and all child keys:
 
 ```julia
-julia> Etcd.get(etcd,"/foo",recursive=true)
-["action"=>"get","node"=>["nodes"=>{["createdIndex"=>1817,"key"=>"/foo/bar","value"=>"Hello World","modifiedIndex"=>1817],["createdIndex"=>1818,"key"=>"/foo/baz","value"=>"Goodbye Cruel World","modifiedIndex"=>1820]},"createdIndex"=>1803,"key"=>"/foo","dir"=>true,"modifiedIndex"=>1803]]
-ulia> Etcd.delete_dir(etcd,"/foo",recursive=true)
-["action"=>"delete","prevNode"=>["createdIndex"=>1803,"key"=>"/foo","dir"=>true,"modifiedIndex"=>1803],"node"=>["createdIndex"=>1803,"key"=>"/foo","dir"=>true,"modifiedIndex"=>1844]]
-julia> Etcd.get(etcd,"/foo",recursive=true)
-["message"=>"Key not found","cause"=>"/foo","index"=>1844,"errorCode"=>100]
+julia> get(cli, "/foo", recursive=true)
+
+julia> deletedir(cli, "/foo", recursive=true)
+
+julia> get(cli, "/foo", recursive=true)
 ```
 
 Conditionally delete `/foo/bar` if the previous value was "Hello world":
 
 ```julia
-julia> Etcd.create(etcd,"/foo/bar","bar value")
-["action"=>"create","node"=>["createdIndex"=>1845,"key"=>"/foo/bar","value"=>"bar value","modifiedIndex"=>1845]]
-julia> Etcd.compare_and_delete(etcd,"/foo/bar",prev_value="bar value")
-["action"=>"compareAndDelete","prevNode"=>["createdIndex"=>1845,"key"=>"/foo/bar","value"=>"bar value","modifiedIndex"=>1845],"node"=>["createdIndex"=>1845,"key"=>"/foo/bar","modifiedIndex"=>1846]]
+julia> create(cli, "/foo/bar", "bar value")
+
+julia> cad(cli, "/foo/bar", prev_value="bar value")
 ```
 
 Conditionally delete `/foo/bar` if the previous etcd index was 1849:
 
 ```julia
-julia> Etcd.create(etl,"/foo/bar","Hello World")
-["action"=>"create","node"=>["createdIndex"=>1849,"key"=>"/foo/bar","value"=>"Hello World","modifiedIndex"=>1849]]
-julia> Etcd.compare_and_delete(etl,"/foo/bar",prev_index=1849)
-["action"=>"compareAndDelete","prevNode"=>["createdIndex"=>1849,"key"=>"/foo/bar","value"=>"Hello World","modifiedIndex"=>1849],"node"=>["createdIndex"=>1849,"key"=>"/foo/bar","modifiedIndex"=>1850]]
+julia>create(cli, "/foo/bar", "Hello World")
+
+julia> cad(cli, "/foo/bar", prev_index=1849)
 ```
 
 #### Watching for changes
@@ -163,7 +159,7 @@ julia> Etcd.compare_and_delete(etl,"/foo/bar",prev_index=1849)
 Watch for only the next change on a key:
 
 ```julia
-julia> Etcd.watch(etcd,"/foo/bar",ev->println("I'm watching you:",ev))
+julia> watch(ev->println("I'm watching you:", ev), cli, "/foo/bar")
 Task (queued) @0x00000000024b65f0
 ...
 ... next make some modification to "/foo/bar" key and the callback is then called:
@@ -189,18 +185,13 @@ Watch conditionally, while passing a function which will terminate the watch whe
 julia> Etcd.watch_until(etcd,"/foo",ev->println("I'll be watching you (only 3 times):",ev),begin let l = 0; ev->begin l += 1; if l > 2 true else false end end end end,recursive=true)
 ```
 
-#### Get all machines in the cluster
-
-```julia
-julia> Etcd.machines(etcd)
-"http://172.17.42.1:5001, http://172.17.42.1:5002, http://172.17.42.1:5003"
-```
+## The below documentation is out of date!
 
 #### Getting Etcd stats
 
 You can retrieve Etcd stats by specifying one of `store`, `self` or `leader`.
 
-For example to get the `store` stats: 
+For example to get the `store` stats:
 
 ```julia
 julia> Etcd.stats(etcd,"store")
@@ -210,7 +201,7 @@ julia> Etcd.stats(etcd,"store")
 #### Leader/Election module
 
 Set a leader for the cluster (notice the leading slash is omitted) by specifying a name and a ttl as follows:
- 
+
 ```julia
 julia> Etcd.set_leader(etcd,"my-cluster",name="leader-1",ttl=60)
 "1853"
@@ -256,5 +247,5 @@ julia> Etcd.lock_renew(etcd,"mylock",index=1885,ttl=60)
 And release the lock:
 
 ```julia
-julia> Etcd.lock_release(etcd,"mylock",index=1890) 
+julia> Etcd.lock_release(etcd,"mylock",index=1890)
 ```

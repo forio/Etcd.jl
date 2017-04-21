@@ -1,16 +1,15 @@
-language: cpp
-compiler:
-    - gcc
+language: julia
+os:
+  - linux
+  - osx
+julia:
+  - release
+  # - nightly
 notifications:
-    email: false
-before_install:
-    - sudo add-apt-repository ppa:staticfloat/julia-deps -y
-    - sudo add-apt-repository ppa:staticfloat/julianightlies -y
-    - sudo apt-get update -qq -y
-    - sudo apt-get install git libpcre3-dev julia -y
-    - git config --global user.name "Travis User"
-    - git config --global user.email "travis@example.net"
-    - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
-script:
-    - julia -e 'versioninfo(); Pkg.init(); Pkg.clone(pwd())'
-    - julia --color ./test/etcd_test.jl
+  email: false
+after_success:
+  # push coverage results to CodeCov
+  - julia -e 'cd(Pkg.dir("Etcd")); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
+  # build documentation
+  # - julia -e 'Pkg.add("Documenter")'
+  # - julia -e 'cd(Pkg.dir("Etcd")); include(joinpath("docs", "make.jl"))'
