@@ -219,7 +219,8 @@ const version = "v2"
 
             set_resp = set(cli, "/mykey", "newvalue"; ttl=2)
             wait(t)
-            @test set_resp == take!(c)
+            c_resp = take!(c)
+            @test set_resp == c_resp || c_resp["action"] == "expire"
 
             sleep(2)
         end
@@ -232,9 +233,11 @@ const version = "v2"
             end
 
             set_resp = set(cli, "/mykey", "val1"; ttl=1)
-            @test set_resp == take!(c)
+            c_resp = take!(c)
+            @test set_resp == c_resp || c_resp["action"] == "expire"
             set_resp = set(cli, "/mykey", "val2"; ttl=1)
-            @test set_resp == take!(c)
+            c_resp = take!(c)
+            @test set_resp == c_resp || c_resp["action"] == "expire"
             try
                 schedule(t, InterruptException(); error=true)
                 wait(t)
@@ -257,7 +260,8 @@ const version = "v2"
             set_resp = set(cli, "/mykey", "val$i"; ttl=1)
             sleep(0.2)
             while isready(c)
-                @test set_resp == take!(c)
+                c_resp = take!(c)
+                @test set_resp == c_resp || c_resp["action"] == "expire"
                 i += 1
                 set_resp = set(cli, "/mykey", "val$i"; ttl=1)
                 sleep(0.2)
